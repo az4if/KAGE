@@ -1,90 +1,125 @@
-# KAGE
+<div align="center">
+  <img src="favicons/android-chrome-192x192.png" alt="KAGE icon" width="128" height="128">
+  <h1>KAGE</h1>
+  <p><strong>A self-hosted anime browsing and streaming interface.</strong></p>
+  <p>Search anime, explore episodes, choose sub or dub servers, and play HLS streams from a clean dark-themed web UI.</p>
 
-KAGE is a self-hosted anime browsing and streaming web app. It provides a
-browser UI for searching anime, viewing episode information, selecting
-sub/dub servers, and playing HLS streams returned by the KAGE API.
+  <p>
+    <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white" alt="Python 3.11 or newer">
+    <img src="https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white" alt="Node.js 20 or newer">
+    <img src="https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows&logoColor=white" alt="Windows">
+  </p>
+</div>
 
-The project is split into two services:
+<p align="center">
+  <img src="KAGE_FLOW.svg" alt="KAGE architecture diagram" width="680">
+</p>
+
+> **Important:** KAGE accesses third-party services and displays streams supplied by
+> those services. Make sure your use complies with the laws and terms that apply
+> to you. KAGE does not host or own the streamed content.
+
+## What is KAGE?
+
+KAGE is a small self-hosted application made of two services:
+
+- **Frontend** — a Flask server that serves the browser UI and proxies HLS and subtitle requests.
+- **API** — a FastAPI service that retrieves anime metadata, episode information, streaming servers, subtitles, and stream URLs.
+
+The API uses Node.js to run the stream decryption helper required by the upstream
+stream provider. The frontend and API are intentionally separate, so the API can
+run on another machine if desired.
 
 ```text
-Browser
-   │
-   ▼
-Frontend: app.py  ── http://localhost:6767
-   │
-   ▼
-API: KAGE_API/reanime.py  ── http://localhost:8787
-   │
-   ├── reanime.to       metadata and episode information
-   └── flixcloud.cc     stream data and subtitles
+┌──────────────┐       ┌──────────────────────┐       ┌─────────────────────┐
+│    Browser   │──────▶│  Frontend · :6767    │──────▶│  API · :8787         │
+│  app.html    │       │  app.py              │       │  KAGE_API/reanime.py │
+└──────────────┘       └──────────────────────┘       └──────────┬──────────┘
+                                                                  │
+                                                                  ▼
+                                                        Third-party providers
 ```
 
-> **Notice:** KAGE accesses third-party services and displays streams supplied
-> by those services. Make sure your use complies with the laws and terms that
-> apply to you. KAGE does not host or own the streamed content.
+## Features
+
+- Search anime and browse current, popular, and top titles
+- View anime details, episode lists, recommendations, and weekly schedules
+- Select available subbed and dubbed servers
+- Play HLS streams through the built-in browser proxy
+- Display subtitles, episode thumbnails, and intro/outro chapter metadata
+- Responsive dark-themed interface
+- Installable PWA with browser, Android, Apple, and Windows icon assets
+- Interactive API documentation through Swagger UI and ReDoc
 
 ## Requirements
 
 - Windows
-- Python 3.11 or newer
-- Node.js 20 or newer
+- Python **3.11 or newer**
+- Node.js **20 or newer**
 - Internet access
 
-The frontend uses Flask and `curl-cffi`. The API uses FastAPI, Uvicorn,
-`curl-cffi`, and Node.js to run the stream decryption helper.
+The frontend requires Flask and `curl-cffi`. The API requires FastAPI,
+Uvicorn, `curl-cffi`, `httpx`, and PyCryptodome.
 
-## Quick start on Windows
+## Quick start
 
-1. Open two Command Prompt or PowerShell windows in the project directory.
-2. Start the API first:
+### 1. Start the API
 
-   ```bat
-   api.bat
-   ```
+Open a Command Prompt or PowerShell window in the project directory and run:
 
-3. Start the frontend in the second window:
+```bat
+api.bat
+```
 
-   ```bat
-   app.bat
-   ```
+The API starts at <http://localhost:8787>.
 
-4. Open <http://localhost:6767> in a browser.
+### 2. Start the frontend
 
-The batch files check for Python and Node.js and install the primary Python
-packages when they are missing. If a dependency error occurs, install the
-complete set manually:
+Open a second Command Prompt or PowerShell window in the same directory and run:
+
+```bat
+app.bat
+```
+
+The frontend starts at <http://localhost:6767>.
+
+### 3. Open KAGE
+
+Visit <http://localhost:6767> in your browser. Keep both terminal windows open
+while using the app.
+
+The batch files check for Python and Node.js, then install the service-specific
+Python dependencies when needed.
+
+## Manual setup
+
+Install the dependencies from the project root:
 
 ```powershell
 python -m pip install flask curl-cffi fastapi "uvicorn[standard]" "httpx[http2]" pycryptodome
 ```
 
-## Manual startup
-
-If you prefer not to use the batch files:
-
-```powershell
-python -m pip install flask curl-cffi fastapi "uvicorn[standard]" "httpx[http2]" pycryptodome
-```
-
-Start the API:
+Start the API from a terminal:
 
 ```powershell
 Set-Location .\KAGE_API
 python reanime.py
 ```
 
-In a second terminal, from the project root, start the frontend:
+In a second terminal, start the frontend from the project root:
 
 ```powershell
 python app.py
 ```
 
-The services listen on all network interfaces:
+The default service addresses are:
 
-| Service | Default URL | File |
+| Service | URL | Entry point |
 | --- | --- | --- |
-| Frontend | <http://localhost:6767> | `app.py` |
-| API | <http://localhost:8787> | `KAGE_API/reanime.py` |
+| Frontend | <http://localhost:6767> | [`app.py`](app.py) |
+| API | <http://localhost:8787> | [`KAGE_API/reanime.py`](KAGE_API/reanime.py) |
+| API docs | <http://localhost:8787/docs> | FastAPI Swagger UI |
+| Alternative docs | <http://localhost:8787/redoc> | FastAPI ReDoc |
 
 Press `Ctrl+C` in each terminal to stop a service.
 
@@ -96,46 +131,19 @@ The frontend reads the API address from [`_KEY.txt`](_KEY.txt):
 BASE_API_URL=http://localhost:8787
 ```
 
-To use an API running on another machine or port, change the value and restart
-the frontend. `app.py` generates the browser-facing `config.js` response from
-this file; [`config.js`](config.js) is also the default client-side
-configuration.
+To use an API running on another machine or port:
 
-For a local setup, keep the API URL as `http://localhost:8787`. The frontend
-also exposes proxy endpoints for HLS playlists, media segments, and subtitle
-files so the browser can play the returned streams.
+1. Set `BASE_API_URL` to the API’s reachable address.
+2. Restart `app.py` or `app.bat`.
+3. Open the frontend using the address of the machine running `app.py`.
 
-## Features
+`app.py` generates [`config.js`](config.js) dynamically from `_KEY.txt`.
+For local development, keep the default value:
+`http://localhost:8787`.
 
-- Home page with current and popular anime
-- Anime search
-- Anime details and episode lists
-- Weekly airing schedule
-- Subbed and dubbed server selection
-- HLS playback with Hls.js
-- Subtitle and thumbnail support
-- Intro/outro chapter metadata when available
-- Responsive dark-themed UI
-- Favicon and PWA assets
-
-## Project structure
-
-```text
-KAGE/
-├── app.html                 # KAGE browser UI
-├── app.py                   # Frontend server and media proxy
-├── app.bat                  # Windows frontend launcher
-├── _KEY.txt                 # Frontend-to-API URL configuration
-├── config.js                # Client-side API configuration default
-├── api.bat                  # Windows API launcher
-├── KAGE_API/
-│   ├── reanime.py           # FastAPI API and upstream integrations
-│   ├── decrypt.mjs          # Node.js stream decryption helper
-│   └── README.md             # API-specific documentation
-├── favicons/                # Browser, mobile, and Windows icon assets
-├── site.webmanifest         # PWA manifest
-└── KAGE_FLOW.svg            # Service connection diagram
-```
+Both services bind to `0.0.0.0` by default. If the app is reachable from a
+network, protect it with your firewall or place it behind an authenticated
+reverse proxy.
 
 ## API endpoints
 
@@ -155,23 +163,52 @@ The API is available at the configured `BASE_API_URL`:
 | `GET` | `/thumbnails/{anilist_id}` | Episode thumbnail data |
 | `GET` | `/recommendations/{slug}` | Related anime |
 
-The API also provides automatic OpenAPI documentation at:
+### Typical playback flow
 
-- <http://localhost:8787/docs>
-- <http://localhost:8787/redoc>
+```text
+1. GET /search?q=demon+slayer
+   └─ choose an anime slug
+
+2. GET /servers/{slug}/{episode}
+   └─ choose a sub or dub dataLink
+
+3. GET /stream/from-link?link={dataLink}
+   └─ receive the HLS URL, subtitles, thumbnails, and chapters
+```
+
+Stream tokens are one-time-use and returned stream URLs are temporary. Avoid
+caching `/stream` responses or reusing an old stream URL.
+
+## Project structure
+
+```text
+KAGE/
+├── app.html                 # Browser UI
+├── app.py                   # Flask frontend, config endpoint, and media proxy
+├── app.bat                  # Windows frontend launcher
+├── api.bat                  # Windows API launcher
+├── _KEY.txt                 # Frontend-to-API URL configuration
+├── config.js                # Default client-side configuration
+├── site.webmanifest         # PWA metadata
+├── KAGE_FLOW.svg            # Frontend/API connection diagram
+├── favicons/                # Browser, mobile, and Windows icon assets
+└── KAGE_API/
+    ├── reanime.py           # FastAPI API and upstream integrations
+    ├── decrypt.mjs          # Node.js stream decryption helper
+    └── README.md             # API-specific documentation
+```
 
 ## Troubleshooting
 
 ### The page cannot connect to the API
 
-Confirm that `api.bat` is running and that
-[`_KEY.txt`](_KEY.txt) points to the same host and port. Test the API
-directly by opening <http://localhost:8787/docs>.
+Confirm that `api.bat` is running and that [`_KEY.txt`](_KEY.txt) points to the
+same host and port. Test the API directly at <http://localhost:8787/docs>.
 
 ### Python or Node.js is not found
 
-Install Python 3.11+ and Node.js 20+, then ensure both commands are available
-on `PATH`:
+Install Python 3.11+ and Node.js 20+, then make sure both commands are on your
+`PATH`:
 
 ```powershell
 python --version
@@ -180,24 +217,26 @@ node --version
 
 Restart the terminal after changing `PATH`.
 
-### Stream resolution fails
+### Stream resolution or playback fails
 
-Stream tokens and URLs supplied by the upstream service are short-lived and
-may be single-use. Retry from the episode page and avoid reusing an old
-stream URL. Upstream availability, rate limits, or changes to the third-party
-sites can also prevent playback.
+Stream tokens and URLs supplied by upstream services can be short-lived or
+single-use. Retry from the episode page instead of reusing an old URL. Upstream
+availability, rate limits, or provider changes can also prevent playback.
 
-### Port already in use
+### A port is already in use
 
-Stop the process using port 6767 or 8787, or update the application launch
-configuration and the corresponding `BASE_API_URL` value consistently.
+Stop the process using port `6767` or `8787`, or update the launch configuration
+and the corresponding `BASE_API_URL` value consistently.
 
 ## Development notes
 
-- `app.py` serves the UI and proxies HLS/subtitle requests.
-- `KAGE_API/reanime.py` exposes the metadata and stream API.
-- `KAGE_API/decrypt.mjs` is invoked by the API for the upstream stream
-  decryption flow.
-- Do not commit private API keys, cookies, or other credentials to the
-  repository.
+- [`app.py`](app.py) serves the UI and proxies HLS and subtitle requests.
+- [`KAGE_API/reanime.py`](KAGE_API/reanime.py) exposes metadata and stream APIs.
+- [`KAGE_API/decrypt.mjs`](KAGE_API/decrypt.mjs) handles the upstream decryption flow.
+- Do not commit private API keys, cookies, or other credentials.
+- See [`KAGE_API/README.md`](KAGE_API/README.md) for API internals and the decryption flow.
 
+## License
+
+No license file is currently included. Add a license before distributing or
+reusing this project publicly.

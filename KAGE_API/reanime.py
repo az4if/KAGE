@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Optional
 
-from curl_cffi.requests import AsyncSession
+import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -17,21 +17,21 @@ _UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like
 HEADERS = {"User-Agent": _UA, "Accept": "application/json, */*"}
 _DECRYPT_MJS = str(Path(__file__).parent / "decrypt.mjs")
 
-_client: Optional[AsyncSession] = None
+_client: Optional[httpx.AsyncClient] = None
 
 
 @asynccontextmanager
 async def lifespan(_app):
     global _client
-    # Impersonate explicitly mimics Chrome's TLS/HTTP2 fingerprint
-    _client = AsyncSession(
-        impersonate="chrome124",
-        timeout=20.0,
+    _client = httpx.AsyncClient(
+        http2=True,
+        timeout=httpx.Timeout(20.0),
+        limits=httpx.Limits(max_connections=50, max_keepalive_connections=20),
         headers=HEADERS,
-        allow_redirects=True,
+        follow_redirects=True,
     )
     yield
-    await _client.close()
+    await _client.aclose()
 
 
 app = FastAPI(title="ReAnime Scraper", lifespan=lifespan)
@@ -42,7 +42,7 @@ async def _get(path: str, params: dict = None, base: str = BASE) -> Any:
     r = await _client.get(f"{base}{path}", params=params)
     if r.status_code == 404:
         raise HTTPException(404, detail="Not found")
-    if not r.ok:
+    if not r.is_success:
         raise HTTPException(r.status_code, detail=r.text[:300])
     return r.json()
 
@@ -79,7 +79,7 @@ async def _decrypt_embed(html: bytes) -> dict:
 
 async def get_stream_url(access_id: str, v: int = 2) -> dict:
     r = await _client.get(f"{FLIX}/e/{access_id}?v={v}", headers={**HEADERS, "Referer": f"{BASE}/"})
-    if not r.ok:
+    if not r.is_success:
         raise HTTPException(r.status_code, detail=f"Embed fetch failed: {r.status_code}")
     return await _decrypt_embed(r.content)
 
@@ -218,4 +218,4 @@ async def recommendations(slug: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("reanime:app", host="0.0.0.0", port=int(os.getenv("PORT", 8787)), workers=1, reload=False)
+    uvicorn.run("reanime:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), workers=1, reload=False)
