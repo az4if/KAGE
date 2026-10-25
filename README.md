@@ -121,7 +121,7 @@ files so the browser can play the returned streams.
 ## Project structure
 
 ```text
-KAGE_FIXED/
+KAGE/
 ├── app.html                 # KAGE browser UI
 ├── app.py                   # Frontend server and media proxy
 ├── app.bat                  # Windows frontend launcher
