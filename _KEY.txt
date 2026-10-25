@@ -1,0 +1,7 @@
+# KAGE — API Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# BASE_API_URL  — URL of the running KAGE API (reanime.py / api.bat)
+#                 Change this if you host the API on a different machine or port.
+# ─────────────────────────────────────────────────────────────────────────────
+
+BASE_API_URL=http://localhost:8787
